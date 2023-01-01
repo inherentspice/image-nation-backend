@@ -1,0 +1,1 @@
+GET http://localhost:8080/api/image?imageDescription=balloon?imageSize=1024x1024
