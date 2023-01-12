@@ -118,7 +118,9 @@ app.get('/api/user', (req, res) => {
 app.get("/api/image", (req, res) => {
   const user = req.user;
 
-  if (user==="undefined") {
+  console.log(typeof user);
+
+  if (!user) {
     return res.status(405).json({
       error: "user not authenticated"
     });
