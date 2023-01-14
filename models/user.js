@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   lastLogin: {
-    type: Date,
+    type: String,
     required: true,
   }
 })

@@ -47,6 +47,10 @@ passport.deserializeUser(function(id, done) {
 app.use(passport.initialize());
 app.use(passport.session());
 
+function dateConversion(){
+  return new Date().toLocaleString().split(',')[0]
+}
+
 app.post("/sign-up", (req, res) => {
   User.findOne({ username: req.body.username }, (err, existingUser) => {
 
@@ -68,13 +72,13 @@ app.post("/sign-up", (req, res) => {
         username: req.body.username,
         password: hashedPassword,
         dailyUse: 0,
-        lastLogin: Date.now(),
+        lastLogin: dateConversion(),
 
       }).save(err => {
         if (err) {
           return res.status(500).json({ error: err });
         }
-        return res.status(200).json({ message: "sign up successful", username: req.body.username });
+        return res.status(200).json({ username, dailyUse, lastLogin });
       });
     }
    })
@@ -82,6 +86,7 @@ app.post("/sign-up", (req, res) => {
 
 
 app.post("/log-in", (req, res, next) => {
+  const user = req.body.user;
   passport.authenticate("local", (err, user, info) => {
     if (err) {
       return res.status(400).json({ error: "Incorrect username and password" });
@@ -93,7 +98,7 @@ app.post("/log-in", (req, res, next) => {
       if (err) {
         return res.status(500).json({ error: err});
       }
-      return res.status(200).json({ message: "Log in successful", id: user.id });
+      return res.status(200).json({ user: {username: user.username, dailyUse: user.dailyUse, lastLogin: user.lastLogin, id: user.id } });
     });
   })(req, res, next);
 });
@@ -108,8 +113,9 @@ app.get("/log-out", (req, res) => {
 });
 
 app.get('/api/user', (req, res) => {
+  const user = req.user;
   if (req.isAuthenticated()) {
-    res.json({ user: req.user });
+    res.json({ user: {username: user.username, dailyUse: user.dailyUse, lastLogin: user.lastLogin, id: user.id} });
   } else {
     res.status(401).json({ message: "You are not authenticated" });
   }
@@ -117,8 +123,6 @@ app.get('/api/user', (req, res) => {
 
 app.get("/api/image", (req, res) => {
   const user = req.user;
-
-  console.log(typeof user);
 
   if (!user) {
     return res.status(405).json({
@@ -156,6 +160,35 @@ app.get("/api/image", (req, res) => {
       return res.status(500).json({ error: 'something went wrong' });
     }
   });
+});
+
+app.put("/api/user/:id", (req, res) => {
+  User.findById(req.params.id)
+    .then(updatedUser => {
+        if (updatedUser.lastLogin === dateConversion()) {
+            updatedUser.dailyUse += 1;
+            updatedUser.save()
+                .then(() => {
+                    return res.status(200).json({ user: updatedUser });
+                })
+                .catch(err => {
+                    return res.status(500).json({ error: err });
+                });
+        } else {
+            updatedUser.lastLogin = dateConversion();
+            updatedUser.dailyUse = 0;
+            updatedUser.save()
+                .then(() => {
+                    return res.status(200).json({ user: updatedUser });
+                })
+                .catch(err => {
+                    return res.status(500).json({ error: err });
+                });
+        }
+    })
+    .catch(err => {
+        return res.status(500).json({ error: err });
+    });
 });
 
 const PORT = process.env.PORT || 8080;
