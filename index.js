@@ -176,7 +176,7 @@ app.put("/api/user/:id", (req, res) => {
                 });
         } else {
             updatedUser.lastLogin = dateConversion();
-            updatedUser.dailyUse = 0;
+            updatedUser.dailyUse = 1;
             updatedUser.save()
                 .then(() => {
                     return res.status(200).json({ user: updatedUser });
